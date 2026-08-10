@@ -107,13 +107,13 @@ io.on("connection", socket => {
       console.log(`[CHAT] ${displayName(event)}: ${text} | avatar: ${avatar ? "yes" : "no"}`);
       send(socket, "comment", { name: displayName(event), avatar: proxiedAvatar(socket, avatar), text });
     });
-    live.on("roomUser", event => {
-      const count = Number(event.viewerCount ?? event.total ?? event.userCount ?? event.totalUserCount ?? event.stats?.viewerCount ?? 0);
-      if (Number.isFinite(count) && count >= 0) socket.emit("viewer-count", { count });
-    });
     live.on("member", event => { const avatar = avatarUrl(event); console.log(`[JOIN] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "join", { name: displayName(event), avatar: proxiedAvatar(socket, avatar), text: "đã tham gia" }); });
     live.on("gift", event => { const avatar = avatarUrl(event); console.log(`[GIFT] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "gift", { name: displayName(event), avatar: proxiedAvatar(socket, avatar), giftName: event.giftDetails?.giftName || "quà tặng", count: event.repeatCount || 1 }); });
     live.on("follow", event => { const avatar = avatarUrl(event); console.log(`[FOLLOW] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "follow", { name: displayName(event), avatar: proxiedAvatar(socket, avatar), text: "đã theo dõi" }); });
+    live.on("roomUser", event => {
+      const count = Number(event.viewerCount ?? event.totalUser ?? event.userCount ?? 0);
+      if (Number.isFinite(count) && count >= 0) socket.emit("viewer-count", { count });
+    });
     live.on("error", error => console.error("TikTok relay error:", error));
 
     try {
