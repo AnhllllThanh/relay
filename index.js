@@ -10,20 +10,26 @@ const server = http.createServer();
 const io = new Server(server, { cors: { origin: true, methods: ["GET", "POST"] } });
 const connections = new Map();
 const displayName = event => event.user?.nickname || event.user?.uniqueId || event.user?.displayId || event.user?.displayName || "TikTok user";
+const normaliseComment = value => String(value || "").replace(/\s+/g, " ").trim().slice(0, 480);
 const commentText = event => {
-  const visited = new Set();
-  const findText = (value, key = "", depth = 0) => {
-    if (depth > 4 || value == null || visited.has(value)) return "";
-    if (typeof value === "string") return /^(comment|content|text|message|body|defaultpattern)$/i.test(key) && value.trim() ? value.trim() : "";
-    if (typeof value !== "object") return "";
-    visited.add(value);
-    for (const [childKey, childValue] of Object.entries(value)) {
-      const found = findText(childValue, childKey, depth + 1);
-      if (found) return found;
+  const candidates = [
+    event.comment,
+    event.content,
+    event.text,
+    event.message?.content,
+    event.message?.text,
+    event.chatMessage?.content,
+    event.data?.content,
+    event.data?.text,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) return normaliseComment(candidate);
+    if (Array.isArray(candidate)) {
+      const text = candidate.map(item => typeof item === "string" ? item : item?.text || item?.content || "").join("");
+      if (text.trim()) return normaliseComment(text);
     }
-    return "";
-  };
-  return findText(event);
+  }
+  return "";
 };
 const send = (socket, type, data) => socket.emit("live-event", { type, data, at: Date.now() });
 
