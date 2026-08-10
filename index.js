@@ -11,11 +11,32 @@ const io = new Server(server, { cors: { origin: true, methods: ["GET", "POST"] }
 const connections = new Map();
 const displayName = event => event.user?.nickname || event.user?.uniqueId || event.user?.displayId || event.user?.displayName || "TikTok user";
 const avatarUrl = event => {
-  const avatar = event.user?.profilePictureUrl || event.user?.avatarLarge || event.user?.avatarMedium || event.user?.avatarThumb;
-  if (typeof avatar === "string") return avatar;
-  if (Array.isArray(avatar?.urlList)) return avatar.urlList[0] || "";
-  if (Array.isArray(avatar?.url_list)) return avatar.url_list[0] || "";
-  return "";
+  const visited = new Set();
+  const findAvatar = (value, key = "", depth = 0) => {
+    if (depth > 6 || value == null || visited.has(value)) return "";
+    if (typeof value === "string") {
+      const looksLikeAvatar = /avatar|profile|picture|image|thumb/i.test(key);
+      return looksLikeAvatar && /^https:\/\//i.test(value) ? value : "";
+    }
+    if (typeof value !== "object") return "";
+    visited.add(value);
+    if (/avatar|profile|picture|image|thumb/i.test(key)) {
+      for (const urlKey of ["urlList", "url_list", "url", "uri"]) {
+        const candidate = value[urlKey];
+        if (typeof candidate === "string" && /^https:\/\//i.test(candidate)) return candidate;
+        if (Array.isArray(candidate)) {
+          const url = candidate.find(item => typeof item === "string" && /^https:\/\//i.test(item));
+          if (url) return url;
+        }
+      }
+    }
+    for (const [childKey, childValue] of Object.entries(value)) {
+      const found = findAvatar(childValue, childKey, depth + 1);
+      if (found) return found;
+    }
+    return "";
+  };
+  return findAvatar(event.user || event);
 };
 const commentText = event => {
   const visited = new Set();
@@ -52,12 +73,13 @@ io.on("connection", socket => {
         socket.emit("relay-status", { state: "warning", message: "Nhận được chat rỗng từ TikTok." });
         return;
       }
-      console.log(`[CHAT] ${displayName(event)}: ${text}`);
-      send(socket, "comment", { name: displayName(event), avatar: avatarUrl(event), text });
+      const avatar = avatarUrl(event);
+      console.log(`[CHAT] ${displayName(event)}: ${text} | avatar: ${avatar ? "yes" : "no"}`);
+      send(socket, "comment", { name: displayName(event), avatar, text });
     });
-    live.on("member", event => send(socket, "join", { name: displayName(event), avatar: avatarUrl(event), text: "đã tham gia" }));
-    live.on("gift", event => send(socket, "gift", { name: displayName(event), avatar: avatarUrl(event), giftName: event.giftDetails?.giftName || "quà tặng", count: event.repeatCount || 1 }));
-    live.on("follow", event => send(socket, "follow", { name: displayName(event), avatar: avatarUrl(event), text: "đã theo dõi" }));
+    live.on("member", event => { const avatar = avatarUrl(event); console.log(`[JOIN] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "join", { name: displayName(event), avatar, text: "đã tham gia" }); });
+    live.on("gift", event => { const avatar = avatarUrl(event); console.log(`[GIFT] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "gift", { name: displayName(event), avatar, giftName: event.giftDetails?.giftName || "quà tặng", count: event.repeatCount || 1 }); });
+    live.on("follow", event => { const avatar = avatarUrl(event); console.log(`[FOLLOW] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "follow", { name: displayName(event), avatar, text: "đã theo dõi" }); });
     live.on("error", error => console.error("TikTok relay error:", error));
 
     try {
