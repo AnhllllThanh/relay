@@ -68,11 +68,6 @@ const avatarUrl = event => {
   };
   return findAvatar(event.user || event);
 };
-const viewerCount = event => {
-  const candidates = [event.viewerCount, event.total, event.totalUser, event.userCount, event.totalUserCount, event.onlineUserCount, event.user?.count];
-  const value = candidates.find(item => Number.isFinite(Number(item)) && Number(item) >= 0);
-  return value === undefined ? null : Number(value);
-};
 const commentText = event => {
   const visited = new Set();
   const findText = (value, key = "", depth = 0) => {
@@ -112,13 +107,14 @@ io.on("connection", socket => {
       console.log(`[CHAT] ${displayName(event)}: ${text} | avatar: ${avatar ? "yes" : "no"}`);
       send(socket, "comment", { name: displayName(event), avatar: proxiedAvatar(socket, avatar), text });
     });
-    live.on("member", event => { const avatar = avatarUrl(event); console.log(`[JOIN] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "join", { name: displayName(event), avatar: proxiedAvatar(socket, avatar), text: "đã tham gia" }); });
+    const sendViewerCount = event => {
+      const count = Number(event.viewerCount ?? event.totalUser ?? event.total ?? event.userCount ?? event.count ?? 0);
+      if (Number.isFinite(count) && count >= 0) socket.emit("viewer-count", { count });
+    };
+    live.on("roomUser", sendViewerCount);
+    live.on("member", event => { sendViewerCount(event); const avatar = avatarUrl(event); console.log(`[JOIN] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "join", { name: displayName(event), avatar: proxiedAvatar(socket, avatar), text: "đã tham gia" }); });
     live.on("gift", event => { const avatar = avatarUrl(event); console.log(`[GIFT] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "gift", { name: displayName(event), avatar: proxiedAvatar(socket, avatar), giftName: event.giftDetails?.giftName || "quà tặng", count: event.repeatCount || 1 }); });
     live.on("follow", event => { const avatar = avatarUrl(event); console.log(`[FOLLOW] ${displayName(event)} | avatar: ${avatar ? "yes" : "no"}`); send(socket, "follow", { name: displayName(event), avatar: proxiedAvatar(socket, avatar), text: "đã theo dõi" }); });
-    live.on("roomUser", event => {
-      const count = viewerCount(event);
-      if (count !== null) socket.emit("viewer-count", { count });
-    });
     live.on("error", error => console.error("TikTok relay error:", error));
 
     try {
