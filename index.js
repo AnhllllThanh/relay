@@ -24,6 +24,7 @@ const server = http.createServer(async (request, response) => {
     response.writeHead(200, { "Content-Type": contentType, "Cache-Control": "public, max-age=3600" });
     response.end(Buffer.from(await upstream.arrayBuffer()));
   } catch (error) {
+    console.warn("Avatar proxy failed:", error instanceof Error ? error.message : error);
     response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" }).end("Avatar unavailable");
   }
 });
@@ -31,6 +32,8 @@ const io = new Server(server, { cors: { origin: true, methods: ["GET", "POST"] }
 const connections = new Map();
 const proxiedAvatar = (socket, avatar) => {
   if (!avatar) return "";
+  const renderUrl = process.env.RENDER_EXTERNAL_URL?.replace(/\/$/, "");
+  if (renderUrl) return `${renderUrl}/avatar?url=${encodeURIComponent(avatar)}`;
   const forwardedProtocol = String(socket.handshake.headers["x-forwarded-proto"] || "").split(",")[0];
   const protocol = forwardedProtocol === "https" ? "https" : socket.handshake.headers.origin?.startsWith("https://") ? "https" : "http";
   const host = socket.handshake.headers.host;
