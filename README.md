@@ -1,13 +1,31 @@
-# EulerStream TikTok LIVE Relay
+﻿# Live Lantern relay
 
-The relay holds the EulerStream key; the Android app never receives it.
+Relay Socket.IO chuyển sự kiện TikTok LIVE thành dữ liệu cho Live Lantern.
 
-## Setup
+## Chạy local
 
-1. Revoke any key previously exposed in chat and create a new one.
-2. Create `relay/.env` with `EULERSTREAM_SIGN_API_KEY=...` (do not commit it).
-3. Run `npm start`.
+```powershell
+npm install
+Copy-Item .env.example .env
+npm start
+```
 
-## Development
+Điền `EULERSTREAM_SIGN_API_KEY` vào `.env`; không commit khóa này.
 
-The app must use a relay URL reachable from its device. For a phone on the same Wi-Fi network, use your computer's LAN IP and port 3000. For a production APK, deploy the relay behind HTTPS/WSS.
+## Biến môi trường
+
+- `EULERSTREAM_SIGN_API_KEY`: bắt buộc, khóa ký API cho `tiktok-live-connector`.
+- `PORT`: cổng HTTP, mặc định `3000`.
+
+## Socket contract
+
+Client gửi `connect-tiktok` với TikTok ID không có/hoặc có `@`.
+
+Relay phát:
+
+- `relay-status`: `ready`, `connecting`, `connected`, `error`.
+- `live-event`: `{ type, data, at }`, type là `comment`, `join`, `gift` hoặc `follow`.
+
+## Render
+
+Trên Render, build command: `npm install`; start command: `npm start`. Thêm `EULERSTREAM_SIGN_API_KEY` trong Environment Variables.
