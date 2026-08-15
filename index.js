@@ -39,6 +39,7 @@ io.on('connection', socket => {
     live.on('member', event => { if (isCurrent()) emitEvent(socket, 'join', { name: viewerName(event), text: 'đã tham gia' }) })
     live.on('gift', event => { if (isCurrent()) emitEvent(socket, 'gift', { name: viewerName(event), text: '', giftName: event.giftDetails?.giftName || 'quà tặng', count: event.repeatCount || 1 }) })
     live.on('follow', event => { if (isCurrent()) emitEvent(socket, 'follow', { name: viewerName(event), text: 'đã theo dõi' }) })
+    live.on('roomUser', event => { if (isCurrent()) emitEvent(socket, 'viewerCount', { count: Number(event.viewerCount) || 0 }) })
     live.on('error', error => { if (isCurrent()) { console.error(`[TikTok ${tiktokId}]`, error); sendStatus(socket, 'error', 'TikTok LIVE đã báo lỗi.') } })
 
     try { const state = await live.connect(); if (isCurrent()) sendStatus(socket, 'connected', state.roomId ? `Đã vào phòng ${state.roomId}.` : undefined); else live.disconnect() }

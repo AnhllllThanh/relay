@@ -24,7 +24,8 @@ Client gửi `connect-tiktok` với TikTok ID không có/hoặc có `@`.
 Relay phát:
 
 - `relay-status`: `ready`, `connecting`, `connected`, `error`.
-- `live-event`: `{ type, data, at }`, type là `comment`, `join`, `gift` hoặc `follow`.
+- `live-event`: `{ type, data, at }`, type là `comment`, `join`, `gift`, `follow` hoặc `viewerCount`.
+- `viewerCount`: `data.count` là số người đang xem live hiện tại.
 
 ## Render
 
