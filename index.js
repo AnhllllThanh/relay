@@ -18,7 +18,7 @@ const viewerName = event => event.user?.nickname || event.user?.uniqueId || even
 const viewerId = event => event.user?.uniqueId || event.userId || event.user?.displayId || event.user?.nickname
 const commentText = event => [event.comment, event.content, event.text, event.message?.content, event.message?.text, event.chatMessage?.content, event.data?.content, event.data?.text].find(value => typeof value === 'string' && value.trim())?.replace(/\s+/g, ' ').trim().slice(0, 480) || ''
 const emitEvent = (socket, type, data) => { const at = Date.now(); socket.emit('live-event', { id: `${at}-${++eventSequence}`, type, data, at }) }
-const emitViewerCount = (socket, value) => { const count = typeof value?.toNumber === 'function' ? value.toNumber() : Number(value); if (Number.isFinite(count) && count >= 0) emitEvent(socket, 'viewerCount', { count }) }
+const emitViewerCount = (socket, value) => { const count = typeof value?.toNumber === 'function' ? value.toNumber() : Number(value); if (Number.isFinite(count) && count > 0) emitEvent(socket, 'viewerCount', { count }) }
 const sendStatus = (socket, state, message) => socket.emit('relay-status', { state, ...(message ? { message } : {}) })
 const disconnectLive = socketId => { const connection = connections.get(socketId); if (connection) connection.disconnect(); connections.delete(socketId); connectionTokens.delete(socketId) }
 
