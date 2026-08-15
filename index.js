@@ -17,6 +17,7 @@ const normalizeId = raw => String(raw || '').replace(/^@/, '').trim()
 const viewerName = event => event.user?.nickname || event.user?.uniqueId || event.user?.displayId || 'TikTok user'
 const commentText = event => [event.comment, event.content, event.text, event.message?.content, event.message?.text, event.chatMessage?.content, event.data?.content, event.data?.text].find(value => typeof value === 'string' && value.trim())?.replace(/\s+/g, ' ').trim().slice(0, 480) || ''
 const emitEvent = (socket, type, data) => { const at = Date.now(); socket.emit('live-event', { id: `${at}-${++eventSequence}`, type, data, at }) }
+const emitViewerCount = (socket, value) => { const count = Number(value); if (Number.isFinite(count) && count >= 0) emitEvent(socket, 'viewerCount', { count }) }
 const sendStatus = (socket, state, message) => socket.emit('relay-status', { state, ...(message ? { message } : {}) })
 const disconnectLive = socketId => { const connection = connections.get(socketId); if (connection) connection.disconnect(); connections.delete(socketId); connectionTokens.delete(socketId) }
 
@@ -36,7 +37,7 @@ io.on('connection', socket => {
     const isCurrent = () => connectionTokens.get(socket.id) === token
 
     live.on('chat', event => { const text = commentText(event); if (isCurrent() && text) emitEvent(socket, 'comment', { name: viewerName(event), text }) })
-    live.on('member', event => { if (isCurrent()) emitEvent(socket, 'join', { name: viewerName(event), text: 'đã tham gia' }) })
+    live.on('member', event => { if (isCurrent()) { emitEvent(socket, 'join', { name: viewerName(event), text: 'đã tham gia' }); emitViewerCount(socket, event.memberCount ?? event.viewerCount) } })
     live.on('gift', event => { if (isCurrent()) emitEvent(socket, 'gift', { name: viewerName(event), text: '', giftName: event.giftDetails?.giftName || 'quà tặng', count: event.repeatCount || 1 }) })
     live.on('follow', event => { if (isCurrent()) emitEvent(socket, 'follow', { name: viewerName(event), text: 'đã theo dõi' }) })
     live.on('roomUser', event => { if (isCurrent()) emitEvent(socket, 'viewerCount', { count: Number(event.viewerCount) || 0 }) })
