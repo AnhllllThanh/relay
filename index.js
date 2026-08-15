@@ -16,6 +16,8 @@ const validateId = raw => /^[\w.-]{1,64}$/.test(String(raw || '').replace(/^@/, 
 const normalizeId = raw => String(raw || '').replace(/^@/, '').trim()
 const viewerName = event => event.user?.nickname || event.user?.uniqueId || event.user?.displayId || 'TikTok user'
 const viewerId = event => event.user?.uniqueId || event.userId || event.user?.displayId || event.user?.nickname
+const imageUrl = image => Array.isArray(image?.url) ? image.url[0] : typeof image?.url === 'string' ? image.url : ''
+const viewerAvatar = event => { const user = event.user || event; const url = user.profilePictureUrl || user.avatarUrl || imageUrl(user.profilePicture) || imageUrl(user.profilePictureMedium) || imageUrl(user.profilePictureLarge) || imageUrl(user.avatarThumb) || ''; return /^https?:\/\//i.test(url) ? url : '' }
 const commentText = event => [event.comment, event.content, event.text, event.message?.content, event.message?.text, event.chatMessage?.content, event.data?.content, event.data?.text].find(value => typeof value === 'string' && value.trim())?.replace(/\s+/g, ' ').trim().slice(0, 480) || ''
 const emitEvent = (socket, type, data) => { const at = Date.now(); socket.emit('live-event', { id: `${at}-${++eventSequence}`, type, data, at }) }
 const emitViewerCount = (socket, value) => { const count = typeof value?.toNumber === 'function' ? value.toNumber() : Number(value); if (Number.isFinite(count) && count > 0) emitEvent(socket, 'viewerCount', { count }) }
@@ -37,10 +39,10 @@ io.on('connection', socket => {
     connections.set(socket.id, live)
     const isCurrent = () => connectionTokens.get(socket.id) === token
 
-    live.on(WebcastEvent.CHAT, event => { const text = commentText(event); if (isCurrent() && text) emitEvent(socket, 'comment', { name: viewerName(event), viewerId: viewerId(event), text }) })
-    live.on(WebcastEvent.MEMBER, event => { if (isCurrent()) { emitEvent(socket, 'join', { name: viewerName(event), viewerId: viewerId(event), text: 'đã tham gia' }); emitViewerCount(socket, event.memberCount ?? event.viewerCount) } })
-    live.on(WebcastEvent.GIFT, event => { if (isCurrent()) emitEvent(socket, 'gift', { name: viewerName(event), viewerId: viewerId(event), text: '', giftName: event.giftDetails?.giftName || 'quà tặng', count: event.repeatCount || 1 }) })
-    live.on(WebcastEvent.FOLLOW, event => { if (isCurrent()) emitEvent(socket, 'follow', { name: viewerName(event), viewerId: viewerId(event), text: 'đã theo dõi' }) })
+    live.on(WebcastEvent.CHAT, event => { const text = commentText(event); if (isCurrent() && text) emitEvent(socket, 'comment', { name: viewerName(event), viewerId: viewerId(event), viewerAvatar: viewerAvatar(event), text }) })
+    live.on(WebcastEvent.MEMBER, event => { if (isCurrent()) { emitEvent(socket, 'join', { name: viewerName(event), viewerId: viewerId(event), viewerAvatar: viewerAvatar(event), text: 'đã tham gia' }); emitViewerCount(socket, event.memberCount ?? event.viewerCount) } })
+    live.on(WebcastEvent.GIFT, event => { if (isCurrent()) emitEvent(socket, 'gift', { name: viewerName(event), viewerId: viewerId(event), viewerAvatar: viewerAvatar(event), text: '', giftName: event.giftDetails?.giftName || 'quà tặng', count: event.repeatCount || 1 }) })
+    live.on(WebcastEvent.FOLLOW, event => { if (isCurrent()) emitEvent(socket, 'follow', { name: viewerName(event), viewerId: viewerId(event), viewerAvatar: viewerAvatar(event), text: 'đã theo dõi' }) })
     live.on(WebcastEvent.ROOM_USER, event => { if (isCurrent()) emitViewerCount(socket, event.viewerCount ?? event.totalUser ?? event.total ?? event.data?.viewerCount) })
     live.on(ControlEvent.ERROR, error => { if (isCurrent()) { console.error(`[TikTok ${tiktokId}]`, error); sendStatus(socket, 'error', 'TikTok LIVE đã báo lỗi.') } })
 
