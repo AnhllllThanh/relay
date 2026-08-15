@@ -10,6 +10,6 @@
   "dependencies": {
     "dotenv": "^17.4.2",
     "socket.io": "^4.8.3",
-    "tiktok-live-connector": "^2.4.3"
+    "tiktok-live-connector": "2.1.0"
   }
 }

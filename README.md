@@ -25,7 +25,8 @@ Relay phát:
 
 - `relay-status`: `ready`, `connecting`, `connected`, `error`.
 - `live-event`: `{ type, data, at }`, type là `comment`, `join`, `gift`, `follow` hoặc `viewerCount`.
-- `viewerCount`: `data.count` là số người đang xem live hiện tại.
+- `viewerCount`: `data.count` là số người đang xem live hiện tại (`totalUser`/`viewerCount` từ TikTok).
+- TikTok không phát sự kiện rời live kèm định danh người dùng; relay chỉ có thể cập nhập tổng số người rời qua bản tin thống kê phòng.
 
 ## Render
 
