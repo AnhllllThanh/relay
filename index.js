@@ -48,7 +48,8 @@ const generateGeminiReply = async (apiKey, conversation, name, text) => {
 }
 const enqueueGeminiReply = (socket, isCurrent, commentId, name, text) => {
   const apiKey = getGeminiApiKey(socket)
-  if (!apiKey || !socket.data.geminiAutoChat) return
+  if (!socket.data.geminiAutoChat) return
+  if (!apiKey) { socket.emit('ai-error', { message: 'Chưa có Gemini API key.' }); return }
   const previous = socket.data.geminiQueue || Promise.resolve()
   socket.data.geminiQueue = previous.then(async () => {
     if (!isCurrent() || !socket.data.geminiAutoChat) return
